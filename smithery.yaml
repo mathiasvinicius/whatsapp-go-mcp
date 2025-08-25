@@ -4,4 +4,35 @@ build:
   dockerBuildPath: "."
 startCommand:
   type: "http"
+test:
+  tools:
+    - name: "whatsapp_send_text"
+      description: "Send a text message via WhatsApp"
+      parameters:
+        phone: "+1234567890"
+        message: "Test message from MCP"
+    - name: "whatsapp_send_contact"
+      description: "Send a contact card via WhatsApp"
+      parameters:
+        phone: "+1234567890"
+        contact_name: "John Doe"
+        contact_phone: "+9876543210"
+    - name: "whatsapp_send_link"
+      description: "Send a link via WhatsApp"
+      parameters:
+        phone: "+1234567890"
+        link: "https://example.com"
+        caption: "Check this out!"
+    - name: "whatsapp_send_location"
+      description: "Send location coordinates via WhatsApp"
+      parameters:
+        phone: "+1234567890"
+        latitude: "37.7749"
+        longitude: "-122.4194"
+    - name: "whatsapp_send_image"
+      description: "Send an image via WhatsApp"
+      parameters:
+        phone: "+1234567890"
+        image_url: "https://example.com/image.jpg"
+        caption: "Test image"
   

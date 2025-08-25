@@ -70,6 +70,13 @@ func mcpServer(_ *cobra.Command, _ []string) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok","service":"whatsapp-mcp"}`))
 	})
+	
+	// Add tools info endpoint for debugging
+	mux.HandleFunc("/tools", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"tools":["whatsapp_send_text","whatsapp_send_contact","whatsapp_send_link","whatsapp_send_location","whatsapp_send_image"]}`))
+	})
 
 	// Start the HTTP server with CORS support
 	addr := fmt.Sprintf("%s:%s", config.McpHost, port)
