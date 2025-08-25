@@ -1,6 +1,6 @@
 {
   "name": "@samihalawa/whatsapp-go-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Production-ready WhatsApp MCP with multi-device support",
   "main": "whatsapp-mcp",
   "bin": {
