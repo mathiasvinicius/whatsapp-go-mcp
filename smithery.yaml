@@ -6,33 +6,22 @@ startCommand:
   type: "http"
 test:
   tools:
+    - name: "whatsapp_get_qr"
+      description: "Get WhatsApp QR code for login"
+      parameters: {}
+    - name: "whatsapp_get_my_info"
+      description: "Get logged-in user information"
+      parameters: {}
     - name: "whatsapp_send_text"
       description: "Send a text message via WhatsApp"
       parameters:
         phone: "+1234567890"
         message: "Test message from MCP"
-    - name: "whatsapp_send_contact"
-      description: "Send a contact card via WhatsApp"
+    - name: "whatsapp_get_joined_groups"
+      description: "Get list of joined WhatsApp groups"
+      parameters: {}
+    - name: "whatsapp_get_chat_list"
+      description: "Get list of all WhatsApp chats"
       parameters:
-        phone: "+1234567890"
-        contact_name: "John Doe"
-        contact_phone: "+9876543210"
-    - name: "whatsapp_send_link"
-      description: "Send a link via WhatsApp"
-      parameters:
-        phone: "+1234567890"
-        link: "https://example.com"
-        caption: "Check this out!"
-    - name: "whatsapp_send_location"
-      description: "Send location coordinates via WhatsApp"
-      parameters:
-        phone: "+1234567890"
-        latitude: "37.7749"
-        longitude: "-122.4194"
-    - name: "whatsapp_send_image"
-      description: "Send an image via WhatsApp"
-      parameters:
-        phone: "+1234567890"
-        image_url: "https://example.com/image.jpg"
-        caption: "Test image"
+        limit: 10
   

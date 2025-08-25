@@ -43,8 +43,29 @@ func mcpServer(_ *cobra.Command, _ []string) {
 	)
 
 	// Add all WhatsApp tools
+	// App tools (QR login, devices, etc.)
+	appHandler := mcp.InitMcpApp(appUsecase)
+	appHandler.AddAppTools(mcpServer)
+	
+	// Send tools (messages, media, etc.)
 	sendHandler := mcp.InitMcpSend(sendUsecase)
 	sendHandler.AddSendTools(mcpServer)
+	
+	// User tools (info, avatar, privacy)
+	userHandler := mcp.InitMcpUser(userUsecase)
+	userHandler.AddUserTools(mcpServer)
+	
+	// Message tools (react, delete, mark as read)
+	messageHandler := mcp.InitMcpMessage(messageUsecase)
+	messageHandler.AddMessageTools(mcpServer)
+	
+	// Group tools (create, manage, participants)
+	groupHandler := mcp.InitMcpGroup(groupUsecase)
+	groupHandler.AddGroupTools(mcpServer)
+	
+	// Chat tools (list, archive, delete)
+	chatHandler := mcp.InitMcpChat(chatUsecase)
+	chatHandler.AddChatTools(mcpServer)
 
 	// Get port from environment variable (Smithery sets this to 8081)
 	port := os.Getenv("PORT")
@@ -75,7 +96,18 @@ func mcpServer(_ *cobra.Command, _ []string) {
 	mux.HandleFunc("/tools", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"tools":["whatsapp_send_text","whatsapp_send_contact","whatsapp_send_link","whatsapp_send_location","whatsapp_send_image"]}`))
+		tools := `{
+			"total": 28,
+			"categories": {
+				"app": ["whatsapp_get_qr", "whatsapp_login_with_code", "whatsapp_logout", "whatsapp_reconnect", "whatsapp_get_devices"],
+				"send": ["whatsapp_send_text", "whatsapp_send_contact", "whatsapp_send_link", "whatsapp_send_location", "whatsapp_send_image"],
+				"user": ["whatsapp_get_user_info", "whatsapp_get_avatar", "whatsapp_get_my_groups", "whatsapp_check_phone", "whatsapp_get_my_privacy"],
+				"message": ["whatsapp_react_message", "whatsapp_delete_message", "whatsapp_get_messages", "whatsapp_mark_as_read"],
+				"group": ["whatsapp_create_group", "whatsapp_leave_group", "whatsapp_get_group_info", "whatsapp_join_group_link", "whatsapp_get_invite_link", "whatsapp_set_group_name", "whatsapp_set_group_locked", "whatsapp_set_group_announce"],
+				"chat": ["whatsapp_get_chat_list", "whatsapp_archive_chat", "whatsapp_mark_chat_as_read", "whatsapp_delete_chat"]
+			}
+		}`
+		w.Write([]byte(tools))
 	})
 
 	// Start the HTTP server with CORS support
