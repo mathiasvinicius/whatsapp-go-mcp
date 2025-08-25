@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -58,12 +59,24 @@ func mcpServer(_ *cobra.Command, _ []string) {
 		server.WithStateLess(false),
 	)
 
-	// Start the Streamable HTTP server
+	// Create HTTP server with CORS middleware
+	mux := http.NewServeMux()
+	mux.Handle("/mcp", corsMiddleware(streamableServer))
+	
+	// Add health check endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok","service":"whatsapp-mcp"}`))
+	})
+
+	// Start the HTTP server with CORS support
 	addr := fmt.Sprintf("%s:%s", config.McpHost, port)
 	logrus.Printf("Starting WhatsApp MCP Streamable HTTP server on %s", addr)
 	logrus.Printf("MCP endpoint: http://%s/mcp", addr)
+	logrus.Printf("Health endpoint: http://%s/health", addr)
 
-	if err := streamableServer.Start(addr); err != nil {
-		logrus.Fatalf("Failed to start Streamable HTTP server: %v", err)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		logrus.Fatalf("Failed to start HTTP server: %v", err)
 	}
 }
