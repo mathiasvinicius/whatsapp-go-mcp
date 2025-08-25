@@ -1,0 +1,56 @@
+{
+  "name": "@samihalawa/whatsapp-go-mcp",
+  "version": "1.0.0",
+  "description": "Production-ready WhatsApp MCP with multi-device support",
+  "main": "whatsapp-mcp",
+  "bin": {
+    "whatsapp-go-mcp": "./whatsapp-mcp"
+  },
+  "scripts": {
+    "start": "./whatsapp-mcp mcp",
+    "rest": "./whatsapp-mcp rest",
+    "build": "cd src && go build -o ../whatsapp-mcp ."
+  },
+  "keywords": [
+    "whatsapp",
+    "mcp",
+    "model-context-protocol",
+    "smithery",
+    "ai",
+    "automation",
+    "messaging"
+  ],
+  "author": "samihalawa",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samihalawa/whatsapp-go-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/samihalawa/whatsapp-go-mcp/issues"
+  },
+  "homepage": "https://github.com/samihalawa/whatsapp-go-mcp#readme",
+  "files": [
+    "whatsapp-mcp",
+    "smithery.yaml",
+    "src/statics/**/*",
+    "src/views/**/*",
+    "readme.md",
+    "docs/**/*"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}
