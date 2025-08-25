@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -22,8 +23,8 @@ var mcpCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(mcpCmd)
-	mcpCmd.Flags().StringVar(&config.McpPort, "port", "8080", "Port for the SSE MCP server")
-	mcpCmd.Flags().StringVar(&config.McpHost, "host", "localhost", "Host for the SSE MCP server")
+	mcpCmd.Flags().StringVar(&config.McpPort, "port", "8081", "Port for the MCP server")
+	mcpCmd.Flags().StringVar(&config.McpHost, "host", "0.0.0.0", "Host for the MCP server")
 }
 
 func mcpServer(_ *cobra.Command, _ []string) {
@@ -44,20 +45,25 @@ func mcpServer(_ *cobra.Command, _ []string) {
 	sendHandler := mcp.InitMcpSend(sendUsecase)
 	sendHandler.AddSendTools(mcpServer)
 
-	// Create SSE server
-	sseServer := server.NewSSEServer(
+	// Get port from environment variable (Smithery sets this to 8081)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = config.McpPort
+	}
+
+	// Create Streamable HTTP server for Smithery.ai compatibility
+	streamableServer := server.NewStreamableHTTPServer(
 		mcpServer,
-		server.WithBaseURL(fmt.Sprintf("http://%s:%s", config.McpHost, config.McpPort)),
-		server.WithKeepAlive(true),
+		server.WithEndpointPath("/mcp"),
+		server.WithStateLess(false),
 	)
 
-	// Start the SSE server
-	addr := fmt.Sprintf("%s:%s", config.McpHost, config.McpPort)
-	logrus.Printf("Starting WhatsApp MCP SSE server on %s", addr)
-	logrus.Printf("SSE endpoint: http://%s:%s/sse", config.McpHost, config.McpPort)
-	logrus.Printf("Message endpoint: http://%s:%s/message", config.McpHost, config.McpPort)
+	// Start the Streamable HTTP server
+	addr := fmt.Sprintf("%s:%s", config.McpHost, port)
+	logrus.Printf("Starting WhatsApp MCP Streamable HTTP server on %s", addr)
+	logrus.Printf("MCP endpoint: http://%s/mcp", addr)
 
-	if err := sseServer.Start(addr); err != nil {
-		logrus.Fatalf("Failed to start SSE server: %v", err)
+	if err := streamableServer.Start(addr); err != nil {
+		logrus.Fatalf("Failed to start Streamable HTTP server: %v", err)
 	}
 }

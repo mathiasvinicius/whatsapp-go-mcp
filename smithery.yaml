@@ -1,67 +1,7 @@
-name: whatsapp-go-mcp
-version: 1.0.0
-description: Production-ready WhatsApp MCP with multi-device support
-author: samihalawa
-license: MIT
-
-# Build configuration
+runtime: "container"
 build:
-  command: go build -o whatsapp ./src
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
+startCommand:
+  type: "http"
   
-# Runtime configuration  
-runtime:
-  command: ./whatsapp
-  args: ["mcp"]
-  
-# Environment variables
-env:
-  PORT: "3000"
-  AUTO_MARK_READ: "true"
-  DEBUG: "false"
-  OS_NAME: "WhatsApp MCP"
-  
-# Health check
-health:
-  endpoint: /health
-  interval: 30
-  timeout: 10
-  
-# Resources
-resources:
-  memory: 512M
-  cpu: 0.5
-  
-# Persistence
-persistence:
-  - path: .wwebjs_auth
-    description: WhatsApp session data
-  - path: statics
-    description: Media and QR codes
-    
-# MCP configuration
-mcp:
-  protocol: sse
-  transport: http
-  
-# Features
-features:
-  - QR code authentication
-  - Multi-device support
-  - Message send/receive
-  - Media handling
-  - Contact management
-  - Group management
-  - Webhook support
-  - Auto-reply
-  - Session persistence
-  
-# Dependencies
-dependencies:
-  - go: ">=1.21"
-  - chrome: required
-  
-# Documentation
-docs:
-  readme: readme.md
-  api: docs/openapi.yaml
-  webhook: docs/webhook-payload.md

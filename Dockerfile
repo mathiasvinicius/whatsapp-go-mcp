@@ -46,12 +46,12 @@ COPY src/views ./views
 RUN mkdir -p .wwebjs_auth statics/media statics/qrcode statics/senditems
 
 # Set environment variables
-ENV PORT=3000 \
+ENV PORT=8081 \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Expose port
-EXPOSE 3000
+EXPOSE 8081
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
