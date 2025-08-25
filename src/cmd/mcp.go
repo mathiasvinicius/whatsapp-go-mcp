@@ -59,9 +59,9 @@ func mcpServer(_ *cobra.Command, _ []string) {
 		server.WithStateLess(false),
 	)
 
-	// Create HTTP server with CORS middleware
+	// Create HTTP server with CORS and session middleware
 	mux := http.NewServeMux()
-	mux.Handle("/mcp", corsMiddleware(streamableServer))
+	mux.Handle("/mcp", corsMiddleware(sessionMiddleware(streamableServer)))
 	
 	// Add health check endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
