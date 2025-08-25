@@ -15,8 +15,8 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
-	Short: "Start WhatsApp MCP server using SSE",
-	Long:  `Start a WhatsApp MCP (Model Context Protocol) server using Server-Sent Events (SSE) transport. This allows AI agents to interact with WhatsApp through a standardized protocol.`,
+	Short: "Start WhatsApp MCP server using SSE/HTTP streaming",
+	Long:  `Start a WhatsApp MCP (Model Context Protocol) server using Server-Sent Events (SSE) transport for HTTP streaming. This allows AI agents and Smithery.ai to interact with WhatsApp through a standardized protocol.`,
 	Run:   mcpServer,
 }
 

@@ -4,7 +4,7 @@
   "description": "Production-ready WhatsApp MCP with multi-device support",
   "main": "whatsapp-mcp",
   "bin": {
-    "whatsapp-go-mcp": "./whatsapp-mcp"
+    "whatsapp-go-mcp": "whatsapp-mcp"
   },
   "scripts": {
     "start": "./whatsapp-mcp mcp",
@@ -52,5 +52,9 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
-  }
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "type": "commonjs"
 }

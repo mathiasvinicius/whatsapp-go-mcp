@@ -40,8 +40,8 @@ persistence:
     
 # MCP configuration
 mcp:
-  protocol: stdio
-  transport: stdio
+  protocol: sse
+  transport: http
   
 # Features
 features:
