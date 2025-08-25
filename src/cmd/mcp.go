@@ -53,10 +53,11 @@ func mcpServer(_ *cobra.Command, _ []string) {
 	}
 
 	// Create Streamable HTTP server for Smithery.ai compatibility
+	// Use stateless mode for simpler integration with Smithery
 	streamableServer := server.NewStreamableHTTPServer(
 		mcpServer,
 		server.WithEndpointPath("/mcp"),
-		server.WithStateLess(false),
+		server.WithStateLess(true), // Enable stateless mode for Smithery
 	)
 
 	// Create HTTP server with CORS and session middleware
