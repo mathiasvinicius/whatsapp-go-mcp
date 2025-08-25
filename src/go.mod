@@ -2,6 +2,8 @@ module github.com/aldinokemal/go-whatsapp-web-multidevice
 
 go 1.24.0
 
+toolchain go1.24.1
+
 require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/disintegration/imaging v1.6.2
