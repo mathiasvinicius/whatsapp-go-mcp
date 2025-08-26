@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	domainApp "github.com/aldinokemal/go-whatsapp-web-multidevice/domains/app"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -39,8 +40,13 @@ func (a *AppHandler) handleGetQR(ctx context.Context, request mcp.CallToolReques
 		return nil, err
 	}
 
-	result := fmt.Sprintf("QR Code generated:\nPath: %s\nCode: %s\nDuration: %v", 
-		res.ImagePath, res.Code, res.Duration)
+	// Create markdown-friendly QR URLs
+	qrData := url.QueryEscape(res.Code)
+	markdownURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=%s", qrData)
+	altURL := fmt.Sprintf("https://quickchart.io/qr?text=%s&size=512", qrData)
+	
+	result := fmt.Sprintf("QR Code generated:\nPath: %s\nMarkdown: ![QR Code](%s)\nAlternative: %s\nRaw Code: %s\nDuration: %v", 
+		res.ImagePath, markdownURL, altURL, res.Code, res.Duration)
 	return mcp.NewToolResultText(result), nil
 }
 
