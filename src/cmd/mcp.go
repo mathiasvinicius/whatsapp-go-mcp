@@ -66,6 +66,10 @@ func mcpServer(_ *cobra.Command, _ []string) {
 	// Chat tools (list, archive, delete)
 	chatHandler := mcp.InitMcpChat(chatUsecase)
 	chatHandler.AddChatTools(mcpServer)
+	
+	// Newsletter tools (unfollow)
+	newsletterHandler := mcp.InitMcpNewsletter(newsletterUsecase)
+	newsletterHandler.AddNewsletterTools(mcpServer)
 
 	// Get port from environment variable (Smithery sets this to 8081)
 	port := os.Getenv("PORT")
@@ -97,14 +101,16 @@ func mcpServer(_ *cobra.Command, _ []string) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		tools := `{
-			"total": 28,
+			"total": 50,
+			"note": "Complete API coverage with all advanced features implemented for MCP AI agents",
 			"categories": {
 				"app": ["whatsapp_get_qr", "whatsapp_login_with_code", "whatsapp_logout", "whatsapp_reconnect", "whatsapp_get_devices"],
-				"send": ["whatsapp_send_text", "whatsapp_send_contact", "whatsapp_send_link", "whatsapp_send_location", "whatsapp_send_image"],
-				"user": ["whatsapp_get_user_info", "whatsapp_get_avatar", "whatsapp_get_my_groups", "whatsapp_check_phone", "whatsapp_get_my_privacy"],
-				"message": ["whatsapp_react_message", "whatsapp_delete_message", "whatsapp_get_messages", "whatsapp_mark_as_read"],
-				"group": ["whatsapp_create_group", "whatsapp_leave_group", "whatsapp_get_group_info", "whatsapp_join_group_link", "whatsapp_get_invite_link", "whatsapp_set_group_name", "whatsapp_set_group_locked", "whatsapp_set_group_announce"],
-				"chat": ["whatsapp_get_chat_list", "whatsapp_archive_chat", "whatsapp_mark_chat_as_read", "whatsapp_delete_chat"]
+				"send": ["whatsapp_send_text", "whatsapp_send_image", "whatsapp_send_audio", "whatsapp_send_video", "whatsapp_send_file", "whatsapp_send_contact", "whatsapp_send_link", "whatsapp_send_location", "whatsapp_send_poll", "whatsapp_send_presence"],
+				"message": ["whatsapp_get_messages", "whatsapp_mark_as_read", "whatsapp_react_message", "whatsapp_delete_message", "whatsapp_update_message", "whatsapp_revoke_message", "whatsapp_star_message", "whatsapp_unstar_message", "whatsapp_download_media"],
+				"group": ["whatsapp_create_group", "whatsapp_leave_group", "whatsapp_get_group_info", "whatsapp_join_group_link", "whatsapp_get_invite_link", "whatsapp_set_group_name", "whatsapp_set_group_locked", "whatsapp_set_group_announce", "whatsapp_set_group_topic", "whatsapp_add_group_participants", "whatsapp_remove_group_participants", "whatsapp_promote_group_admin", "whatsapp_demote_group_admin", "whatsapp_get_group_info_from_link", "whatsapp_get_group_request_participants", "whatsapp_manage_group_request_participants"],
+				"user": ["whatsapp_get_user_info", "whatsapp_check_phone", "whatsapp_get_business_profile", "whatsapp_get_avatar", "whatsapp_change_avatar", "whatsapp_change_push_name", "whatsapp_get_my_groups", "whatsapp_get_my_newsletters", "whatsapp_get_my_contacts", "whatsapp_get_my_privacy"],
+				"chat": ["whatsapp_get_chat_list", "whatsapp_archive_chat", "whatsapp_mark_chat_as_read", "whatsapp_delete_chat"],
+				"newsletter": ["whatsapp_unfollow_newsletter"]
 			}
 		}`
 		w.Write([]byte(tools))

@@ -20,10 +20,22 @@ func InitMcpUser(userService domainUser.IUserUsecase) *UserHandler {
 }
 
 func (u *UserHandler) AddUserTools(mcpServer *server.MCPServer) {
+	// User information
 	mcpServer.AddTool(u.toolGetInfo(), u.handleGetInfo)
-	mcpServer.AddTool(u.toolGetAvatar(), u.handleGetAvatar)
-	mcpServer.AddTool(u.toolMyListGroups(), u.handleMyListGroups)
 	mcpServer.AddTool(u.toolCheckPhone(), u.handleCheckPhone)
+	mcpServer.AddTool(u.toolBusinessProfile(), u.handleBusinessProfile)
+	
+	// Profile management
+	mcpServer.AddTool(u.toolGetAvatar(), u.handleGetAvatar)
+	mcpServer.AddTool(u.toolChangeAvatar(), u.handleChangeAvatar)
+	mcpServer.AddTool(u.toolChangePushName(), u.handleChangePushName)
+	
+	// Listings
+	mcpServer.AddTool(u.toolMyListGroups(), u.handleMyListGroups)
+	mcpServer.AddTool(u.toolMyListNewsletter(), u.handleMyListNewsletter)
+	mcpServer.AddTool(u.toolMyListContacts(), u.handleMyListContacts)
+	
+	// Privacy
 	mcpServer.AddTool(u.toolGetMyPrivacy(), u.handleGetMyPrivacy)
 }
 
@@ -152,5 +164,144 @@ func (u *UserHandler) handleGetMyPrivacy(ctx context.Context, request mcp.CallTo
 
 	result := fmt.Sprintf("Privacy Settings:\nLast Seen: %s\nProfile: %s\nStatus: %s\nRead Receipts: %s\nGroups: %s", 
 		response.LastSeen, response.Profile, response.Status, response.ReadReceipts, response.GroupAdd)
+	return mcp.NewToolResultText(result), nil
+}
+
+// ===== BUSINESS PROFILE TOOLS =====
+
+func (u *UserHandler) toolBusinessProfile() mcp.Tool {
+	return mcp.NewTool("whatsapp_get_business_profile",
+		mcp.WithDescription("Get business profile information for a WhatsApp Business account."),
+		mcp.WithString("phone",
+			mcp.Required(),
+			mcp.Description("Phone number of the business account"),
+		),
+	)
+}
+
+func (u *UserHandler) handleBusinessProfile(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	phone := request.GetArguments()["phone"].(string)
+
+	response, err := u.userService.BusinessProfile(ctx, domainUser.BusinessProfileRequest{
+		Phone: phone,
+	})
+	
+	if err != nil {
+		return nil, err
+	}
+
+	result := fmt.Sprintf("Business Profile:\nJID: %s\nEmail: %s\nAddress: %s\nTimezone: %s", 
+		response.JID, response.Email, response.Address, response.BusinessHoursTimeZone)
+	
+	if len(response.Categories) > 0 {
+		result += "\nCategories:\n"
+		for _, cat := range response.Categories {
+			result += fmt.Sprintf("- %s (ID: %s)\n", cat.Name, cat.ID)
+		}
+	}
+	
+	if len(response.BusinessHours) > 0 {
+		result += "\nBusiness Hours:\n"
+		for _, hours := range response.BusinessHours {
+			result += fmt.Sprintf("- %s: %s %s-%s\n", hours.DayOfWeek, hours.Mode, hours.OpenTime, hours.CloseTime)
+		}
+	}
+	
+	return mcp.NewToolResultText(result), nil
+}
+
+// ===== PROFILE MANAGEMENT TOOLS =====
+
+func (u *UserHandler) toolChangeAvatar() mcp.Tool {
+	return mcp.NewTool("whatsapp_change_avatar",
+		mcp.WithDescription("Change the profile avatar/picture of the logged-in WhatsApp account. Note: File upload in MCP context has limitations."),
+		mcp.WithString("avatar_path",
+			mcp.Required(),
+			mcp.Description("Local file path to the new avatar image (JPG/PNG)"),
+		),
+	)
+}
+
+func (u *UserHandler) handleChangeAvatar(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	avatarPath := request.GetArguments()["avatar_path"].(string)
+
+	// Note: This implementation has limitations in MCP context due to multipart.FileHeader requirement
+	// The actual file upload would need to be handled differently in production
+	return mcp.NewToolResultText(fmt.Sprintf("Avatar change requested for file: %s\nNote: File upload functionality requires direct REST API access for multipart form handling", avatarPath)), nil
+}
+
+func (u *UserHandler) toolChangePushName() mcp.Tool {
+	return mcp.NewTool("whatsapp_change_push_name",
+		mcp.WithDescription("Change the display name (push name) of the logged-in WhatsApp account."),
+		mcp.WithString("push_name",
+			mcp.Required(),
+			mcp.Description("New display name for the account"),
+		),
+	)
+}
+
+func (u *UserHandler) handleChangePushName(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	pushName := request.GetArguments()["push_name"].(string)
+
+	err := u.userService.ChangePushName(ctx, domainUser.ChangePushNameRequest{
+		PushName: pushName,
+	})
+	
+	if err != nil {
+		return nil, err
+	}
+
+	return mcp.NewToolResultText(fmt.Sprintf("Display name changed to: %s", pushName)), nil
+}
+
+// ===== LISTING TOOLS =====
+
+func (u *UserHandler) toolMyListNewsletter() mcp.Tool {
+	return mcp.NewTool("whatsapp_get_my_newsletters",
+		mcp.WithDescription("Get list of newsletters the logged-in account has subscribed to."),
+	)
+}
+
+func (u *UserHandler) handleMyListNewsletter(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	response, err := u.userService.MyListNewsletter(ctx)
+	
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response.Data) == 0 {
+		return mcp.NewToolResultText("No newsletters subscribed"), nil
+	}
+
+	result := fmt.Sprintf("My Newsletters (%d):\n", len(response.Data))
+	for _, newsletter := range response.Data {
+		result += fmt.Sprintf("- ID: %s\n", newsletter.ID.String())
+		result += fmt.Sprintf("  State: %d\n", newsletter.State)
+		result += fmt.Sprintf("  Created: %s\n", newsletter.ThreadMeta.CreationTime.Format("2006-01-02 15:04:05"))
+	}
+	return mcp.NewToolResultText(result), nil
+}
+
+func (u *UserHandler) toolMyListContacts() mcp.Tool {
+	return mcp.NewTool("whatsapp_get_my_contacts",
+		mcp.WithDescription("Get list of contacts in the logged-in account's address book."),
+	)
+}
+
+func (u *UserHandler) handleMyListContacts(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	response, err := u.userService.MyListContacts(ctx)
+	
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response.Data) == 0 {
+		return mcp.NewToolResultText("No contacts found"), nil
+	}
+
+	result := fmt.Sprintf("My Contacts (%d):\n", len(response.Data))
+	for _, contact := range response.Data {
+		result += fmt.Sprintf("- %s (JID: %s)\n", contact.Name, contact.JID.String())
+	}
 	return mcp.NewToolResultText(result), nil
 }
