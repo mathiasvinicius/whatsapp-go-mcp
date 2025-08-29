@@ -20,8 +20,7 @@ func InitMcpMessage(messageService domainMessage.IMessageUsecase) *MessageHandle
 }
 
 func (m *MessageHandler) AddMessageTools(mcpServer *server.MCPServer) {
-	// Basic message operations
-	mcpServer.AddTool(m.toolGetMessages(), m.handleGetMessages)
+	// Message operations (get_messages moved to ChatHandler for proper service access)
 	mcpServer.AddTool(m.toolMarkAsRead(), m.handleMarkAsRead)
 	mcpServer.AddTool(m.toolReact(), m.handleReact)
 	mcpServer.AddTool(m.toolDelete(), m.handleDelete)
@@ -100,30 +99,6 @@ func (m *MessageHandler) handleDelete(ctx context.Context, request mcp.CallToolR
 	return mcp.NewToolResultText(fmt.Sprintf("Message %s deleted successfully", messageID)), nil
 }
 
-func (m *MessageHandler) toolGetMessages() mcp.Tool {
-	return mcp.NewTool("whatsapp_get_messages",
-		mcp.WithDescription("Get recent messages from a chat."),
-		mcp.WithString("phone",
-			mcp.Required(),
-			mcp.Description("Phone number or group ID"),
-		),
-		mcp.WithNumber("limit",
-			mcp.Description("Number of messages to retrieve (default: 10)"),
-		),
-	)
-}
-
-func (m *MessageHandler) handleGetMessages(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	phone := request.GetArguments()["phone"].(string)
-	limit := 10
-	if l, ok := request.GetArguments()["limit"].(float64); ok {
-		limit = int(l)
-	}
-
-	// TODO: This needs to use ChatService.GetChatMessages instead of MessageService
-	// For now, return a descriptive message about the limitation
-	return mcp.NewToolResultText(fmt.Sprintf("Message retrieval for %s requires chat service integration (limit: %d). Use whatsapp_get_chat_list to see available chats first.", phone, limit)), nil
-}
 
 func (m *MessageHandler) toolMarkAsRead() mcp.Tool {
 	return mcp.NewTool("whatsapp_mark_as_read",

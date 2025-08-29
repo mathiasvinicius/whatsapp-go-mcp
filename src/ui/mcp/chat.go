@@ -21,6 +21,7 @@ func InitMcpChat(chatService domainChat.IChatUsecase) *ChatHandler {
 
 func (c *ChatHandler) AddChatTools(mcpServer *server.MCPServer) {
 	mcpServer.AddTool(c.toolGetList(), c.handleGetList)
+	mcpServer.AddTool(c.toolGetMessages(), c.handleGetMessages)
 	mcpServer.AddTool(c.toolArchive(), c.handleArchive)
 	mcpServer.AddTool(c.toolMarkAsRead(), c.handleMarkAsRead)
 	mcpServer.AddTool(c.toolDeleteChat(), c.handleDeleteChat)
@@ -132,5 +133,59 @@ func (c *ChatHandler) handleDeleteChat(ctx context.Context, request mcp.CallTool
 	}
 
 	// TODO: Implement actual delete chat functionality when available in service
+	return mcp.NewToolResultText(result), nil
+}
+
+func (c *ChatHandler) toolGetMessages() mcp.Tool {
+	return mcp.NewTool("whatsapp_get_messages",
+		mcp.WithDescription("Get recent messages from a chat."),
+		mcp.WithString("phone",
+			mcp.Required(),
+			mcp.Description("Phone number or group ID"),
+		),
+		mcp.WithNumber("limit",
+			mcp.Description("Number of messages to retrieve (default: 10)"),
+		),
+	)
+}
+
+func (c *ChatHandler) handleGetMessages(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	phone := request.GetArguments()["phone"].(string)
+	limit := 10
+	if l, ok := request.GetArguments()["limit"].(float64); ok {
+		limit = int(l)
+	}
+
+	response, err := c.chatService.GetChatMessages(ctx, domainChat.GetChatMessagesRequest{
+		ChatJID: phone,
+		Limit:   limit,
+		Offset:  0,
+	})
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to get messages: %w", err)
+	}
+
+	if len(response.Data) == 0 {
+		return mcp.NewToolResultText(fmt.Sprintf("No messages found for chat %s", phone)), nil
+	}
+
+	// Format messages for AI consumption
+	result := fmt.Sprintf("Messages from %s (%d messages):\n", phone, len(response.Data))
+	for i, msg := range response.Data {
+		sender := msg.SenderJID
+		if msg.IsFromMe {
+			sender = "Me"
+		}
+		result += fmt.Sprintf("%d. [%s] %s: %s\n", i+1, msg.Timestamp, sender, msg.Content)
+		if msg.MediaType != "" && msg.MediaType != "text" {
+			result += fmt.Sprintf("   Type: %s", msg.MediaType)
+			if msg.Filename != "" {
+				result += fmt.Sprintf(" | File: %s", msg.Filename)
+			}
+			result += "\n"
+		}
+	}
+	
 	return mcp.NewToolResultText(result), nil
 }
