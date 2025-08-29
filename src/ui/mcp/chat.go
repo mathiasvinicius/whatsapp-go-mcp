@@ -41,9 +41,25 @@ func (c *ChatHandler) handleGetList(ctx context.Context, request mcp.CallToolReq
 		limit = int(l)
 	}
 
-	// This would need actual implementation
-	result := fmt.Sprintf("Retrieved %d chats", limit)
-	return mcp.NewToolResultText(result), nil
+	// Call actual service
+	response, err := c.chatService.ListChats(ctx, domainChat.ListChatsRequest{
+		Limit:  limit,
+		Offset: 0,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chat list: %w", err)
+	}
+
+	// Return actual chat data as JSON
+	chatData := struct {
+		Chats      []domainChat.ChatInfo         `json:"chats"`
+		Pagination domainChat.PaginationResponse `json:"pagination"`
+	}{
+		Chats:      response.Data,
+		Pagination: response.Pagination,
+	}
+
+	return mcp.NewToolResultText(fmt.Sprintf("Chat list retrieved: %+v", chatData)), nil
 }
 
 func (c *ChatHandler) toolArchive() mcp.Tool {
@@ -69,7 +85,7 @@ func (c *ChatHandler) handleArchive(ctx context.Context, request mcp.CallToolReq
 		action = "unarchived"
 	}
 
-	// This would need actual implementation
+	// TODO: Implement actual archive functionality when available in service
 	return mcp.NewToolResultText(fmt.Sprintf("Chat with %s has been %s", phone, action)), nil
 }
 
@@ -86,7 +102,7 @@ func (c *ChatHandler) toolMarkAsRead() mcp.Tool {
 func (c *ChatHandler) handleMarkAsRead(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	phone := request.GetArguments()["phone"].(string)
 
-	// This would need actual implementation
+	// TODO: Implement actual mark as read functionality when available in service
 	return mcp.NewToolResultText(fmt.Sprintf("All messages in chat with %s marked as read", phone)), nil
 }
 
@@ -115,6 +131,6 @@ func (c *ChatHandler) handleDeleteChat(ctx context.Context, request mcp.CallTool
 		result += " (starred messages kept)"
 	}
 
-	// This would need actual implementation
+	// TODO: Implement actual delete chat functionality when available in service
 	return mcp.NewToolResultText(result), nil
 }

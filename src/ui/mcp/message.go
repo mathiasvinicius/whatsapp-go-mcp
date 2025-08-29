@@ -112,9 +112,9 @@ func (m *MessageHandler) handleGetMessages(ctx context.Context, request mcp.Call
 		limit = int(l)
 	}
 
-	// This would need the actual implementation
-	result := fmt.Sprintf("Retrieved %d messages from %s", limit, phone)
-	return mcp.NewToolResultText(result), nil
+	// TODO: This needs to use ChatService.GetChatMessages instead of MessageService
+	// For now, return a descriptive message about the limitation
+	return mcp.NewToolResultText(fmt.Sprintf("Message retrieval for %s requires chat service integration (limit: %d). Use whatsapp_get_chat_list to see available chats first.", phone, limit)), nil
 }
 
 func (m *MessageHandler) toolMarkAsRead() mcp.Tool {
