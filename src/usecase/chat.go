@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	domainChat "github.com/aldinokemal/go-whatsapp-web-multidevice/domains/chat"
@@ -62,7 +63,36 @@ func (service serviceChat) ListChats(ctx context.Context, request domainChat.Lis
 			EphemeralExpiration: chat.EphemeralExpiration,
 			CreatedAt:           chat.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:           chat.UpdatedAt.Format(time.RFC3339),
+			IsGroup:             strings.Contains(chat.JID, "@g.us"),
 		}
+		
+		// Get last message for this chat
+		messageFilter := &domainChatStorage.MessageFilter{
+			ChatJID: chat.JID,
+			Limit:   1,
+			Offset:  0,
+		}
+		
+		messages, err := service.chatStorageRepo.GetMessages(messageFilter)
+		if err == nil && len(messages) > 0 {
+			lastMsg := messages[0]
+			chatInfo.LastMessage = lastMsg.Content
+			chatInfo.LastMessageFrom = lastMsg.Sender
+			chatInfo.LastMessageType = lastMsg.MediaType
+			if chatInfo.LastMessageType == "" {
+				chatInfo.LastMessageType = "text"
+			}
+			// Format media messages
+			if lastMsg.MediaType != "" && lastMsg.MediaType != "text" {
+				if lastMsg.Content == "" {
+					chatInfo.LastMessage = fmt.Sprintf("[%s]", lastMsg.MediaType)
+				}
+				if lastMsg.Filename != "" {
+					chatInfo.LastMessage = fmt.Sprintf("[%s: %s]", lastMsg.MediaType, lastMsg.Filename)
+				}
+			}
+		}
+		
 		chatInfos = append(chatInfos, chatInfo)
 	}
 

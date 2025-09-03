@@ -51,16 +51,48 @@ func (c *ChatHandler) handleGetList(ctx context.Context, request mcp.CallToolReq
 		return nil, fmt.Errorf("failed to get chat list: %w", err)
 	}
 
-	// Return actual chat data as JSON
-	chatData := struct {
-		Chats      []domainChat.ChatInfo         `json:"chats"`
-		Pagination domainChat.PaginationResponse `json:"pagination"`
-	}{
-		Chats:      response.Data,
-		Pagination: response.Pagination,
+	// Format for AI consumption with proper JSON structure
+	result := fmt.Sprintf("Found %d chats:\n\n", len(response.Data))
+	
+	for i, chat := range response.Data {
+		chatType := "Contact"
+		if chat.IsGroup {
+			chatType = "Group"
+		}
+		
+		result += fmt.Sprintf("%d. %s (%s)\n", i+1, chat.Name, chatType)
+		result += fmt.Sprintf("   JID: %s\n", chat.JID)
+		
+		if chat.LastMessage != "" {
+			sender := "You"
+			if chat.LastMessageFrom != "" && chat.LastMessageFrom != "Me" {
+				sender = chat.LastMessageFrom
+			}
+			result += fmt.Sprintf("   Last: %s: %s\n", sender, chat.LastMessage)
+		}
+		
+		if chat.LastMessageTime != "" {
+			result += fmt.Sprintf("   Time: %s\n", chat.LastMessageTime)
+		}
+		
+		if chat.UnreadCount > 0 {
+			result += fmt.Sprintf("   Unread: %d messages\n", chat.UnreadCount)
+		}
+		
+		if chat.IsPinned {
+			result += "   📌 Pinned\n"
+		}
+		
+		if chat.IsArchived {
+			result += "   🗄️ Archived\n"
+		}
+		
+		result += "\n"
 	}
+	
+	result += fmt.Sprintf("\nTotal: %d chats (showing %d)\n", response.Pagination.Total, len(response.Data))
 
-	return mcp.NewToolResultText(fmt.Sprintf("Chat list retrieved: %+v", chatData)), nil
+	return mcp.NewToolResultText(result), nil
 }
 
 func (c *ChatHandler) toolArchive() mcp.Tool {

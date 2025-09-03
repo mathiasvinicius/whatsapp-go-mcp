@@ -45,12 +45,20 @@ type PinChatResponse struct {
 }
 
 type ChatInfo struct {
-	JID                 string `json:"jid"`
-	Name                string `json:"name"`
-	LastMessageTime     string `json:"last_message_time"`
-	EphemeralExpiration uint32 `json:"ephemeral_expiration"`
-	CreatedAt           string `json:"created_at"`
-	UpdatedAt           string `json:"updated_at"`
+	JID                 string  `json:"jid"`
+	Name                string  `json:"name"`
+	LastMessageTime     string  `json:"last_message_time"`
+	LastMessage         string  `json:"last_message,omitempty"`
+	LastMessageFrom     string  `json:"last_message_from,omitempty"`
+	LastMessageType     string  `json:"last_message_type,omitempty"`
+	UnreadCount         int     `json:"unread_count"`
+	IsPinned            bool    `json:"is_pinned"`
+	IsArchived          bool    `json:"is_archived"`
+	IsMuted             bool    `json:"is_muted"`
+	IsGroup             bool    `json:"is_group"`
+	EphemeralExpiration uint32  `json:"ephemeral_expiration"`
+	CreatedAt           string  `json:"created_at"`
+	UpdatedAt           string  `json:"updated_at"`
 }
 
 type MessageInfo struct {
