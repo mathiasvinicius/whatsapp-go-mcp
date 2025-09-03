@@ -15,6 +15,7 @@ type IChatStorageRepository interface {
 	GetChat(jid string) (*Chat, error)
 	GetChats(filter *ChatFilter) ([]*Chat, error)
 	DeleteChat(jid string) error
+	DeleteChatAndMessages(jid string) error
 
 	// Message operations
 	StoreMessage(message *Message) error

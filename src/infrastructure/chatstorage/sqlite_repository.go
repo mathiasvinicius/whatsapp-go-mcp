@@ -161,6 +161,12 @@ func (r *SQLiteRepository) DeleteChat(jid string) error {
 	return tx.Commit()
 }
 
+// DeleteChatAndMessages deletes a chat and all its messages
+func (r *SQLiteRepository) DeleteChatAndMessages(jid string) error {
+	// This is the same as DeleteChat since DeleteChat already handles both
+	return r.DeleteChat(jid)
+}
+
 // StoreMessage creates or updates a message
 func (r *SQLiteRepository) StoreMessage(message *domainChatStorage.Message) error {
 	now := time.Now()

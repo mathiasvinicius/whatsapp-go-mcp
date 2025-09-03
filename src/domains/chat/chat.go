@@ -81,3 +81,39 @@ type PaginationResponse struct {
 	Offset int `json:"offset"`
 	Total  int `json:"total"`
 }
+
+// Archive Chat operations
+type ArchiveChatRequest struct {
+	ChatJID string `json:"chat_jid" uri:"chat_jid"`
+	Archive bool   `json:"archive"`
+}
+
+type ArchiveChatResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	ChatJID string `json:"chat_jid"`
+	Archived bool   `json:"archived"`
+}
+
+// Delete Chat operations
+type DeleteChatRequest struct {
+	ChatJID     string `json:"chat_jid" uri:"chat_jid"`
+	KeepStarred bool   `json:"keep_starred"`
+}
+
+type DeleteChatResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	ChatJID string `json:"chat_jid"`
+}
+
+// Mark Chat As Read operations
+type MarkChatAsReadRequest struct {
+	ChatJID string `json:"chat_jid" uri:"chat_jid"`
+}
+
+type MarkChatAsReadResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	ChatJID string `json:"chat_jid"`
+}

@@ -113,13 +113,16 @@ func (c *ChatHandler) handleArchive(ctx context.Context, request mcp.CallToolReq
 	phone := request.GetArguments()["phone"].(string)
 	archive := request.GetArguments()["archive"].(bool)
 
-	action := "archived"
-	if !archive {
-		action = "unarchived"
+	resp, err := c.chatService.ArchiveChat(ctx, domainChat.ArchiveChatRequest{
+		ChatJID: phone,
+		Archive: archive,
+	})
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to archive chat: %w", err)
 	}
 
-	// TODO: Implement actual archive functionality when available in service
-	return mcp.NewToolResultText(fmt.Sprintf("Chat with %s has been %s", phone, action)), nil
+	return mcp.NewToolResultText(resp.Message), nil
 }
 
 func (c *ChatHandler) toolMarkAsRead() mcp.Tool {
@@ -135,8 +138,15 @@ func (c *ChatHandler) toolMarkAsRead() mcp.Tool {
 func (c *ChatHandler) handleMarkAsRead(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	phone := request.GetArguments()["phone"].(string)
 
-	// TODO: Implement actual mark as read functionality when available in service
-	return mcp.NewToolResultText(fmt.Sprintf("All messages in chat with %s marked as read", phone)), nil
+	resp, err := c.chatService.MarkChatAsRead(ctx, domainChat.MarkChatAsReadRequest{
+		ChatJID: phone,
+	})
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to mark chat as read: %w", err)
+	}
+
+	return mcp.NewToolResultText(resp.Message), nil
 }
 
 func (c *ChatHandler) toolDeleteChat() mcp.Tool {
@@ -159,13 +169,16 @@ func (c *ChatHandler) handleDeleteChat(ctx context.Context, request mcp.CallTool
 		keepStarred = k
 	}
 
-	result := fmt.Sprintf("Chat with %s has been deleted", phone)
-	if keepStarred {
-		result += " (starred messages kept)"
+	resp, err := c.chatService.DeleteChat(ctx, domainChat.DeleteChatRequest{
+		ChatJID:     phone,
+		KeepStarred: keepStarred,
+	})
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete chat: %w", err)
 	}
 
-	// TODO: Implement actual delete chat functionality when available in service
-	return mcp.NewToolResultText(result), nil
+	return mcp.NewToolResultText(resp.Message), nil
 }
 
 func (c *ChatHandler) toolGetMessages() mcp.Tool {

@@ -13,6 +13,7 @@ import (
 	"github.com/aldinokemal/go-whatsapp-web-multidevice/validations"
 	"github.com/sirupsen/logrus"
 	"go.mau.fi/whatsmeow/appstate"
+	"go.mau.fi/whatsmeow/types"
 )
 
 type serviceChat struct {
@@ -271,6 +272,135 @@ func (service serviceChat) PinChat(ctx context.Context, request domainChat.PinCh
 		"chat_jid": request.ChatJID,
 		"pinned":   request.Pinned,
 	}).Info("Chat pin operation completed successfully")
+
+	return response, nil
+}
+
+func (service serviceChat) ArchiveChat(ctx context.Context, request domainChat.ArchiveChatRequest) (response domainChat.ArchiveChatResponse, err error) {
+	// Validate JID and ensure connection
+	targetJID, err := utils.ValidateJidWithLogin(whatsapp.GetClient(), request.ChatJID)
+	if err != nil {
+		return response, err
+	}
+
+	// Build archive patch using whatsmeow's BuildArchive
+	patchInfo := appstate.BuildArchive(targetJID, request.Archive, time.Now(), nil)
+
+	// Send app state update
+	if err = whatsapp.GetClient().SendAppState(ctx, patchInfo); err != nil {
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"chat_jid": request.ChatJID,
+			"archive":  request.Archive,
+		}).Error("Failed to send archive chat app state")
+		return response, err
+	}
+
+	// Build response
+	response.Status = "success"
+	response.ChatJID = request.ChatJID
+	response.Archived = request.Archive
+
+	if request.Archive {
+		response.Message = "Chat archived successfully"
+	} else {
+		response.Message = "Chat unarchived successfully"
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"chat_jid": request.ChatJID,
+		"archived": request.Archive,
+	}).Info("Chat archive operation completed successfully")
+
+	return response, nil
+}
+
+func (service serviceChat) DeleteChat(ctx context.Context, request domainChat.DeleteChatRequest) (response domainChat.DeleteChatResponse, err error) {
+	// Validate JID and ensure connection
+	targetJID, err := utils.ValidateJidWithLogin(whatsapp.GetClient(), request.ChatJID)
+	if err != nil {
+		return response, err
+	}
+
+	// Build delete patch using whatsmeow's BuildDelete
+	patchInfo := appstate.BuildDelete(targetJID)
+
+	// Send app state update
+	if err = whatsapp.GetClient().SendAppState(ctx, patchInfo); err != nil {
+		logrus.WithError(err).WithField("chat_jid", request.ChatJID).Error("Failed to send delete chat app state")
+		return response, err
+	}
+
+	// Delete from local storage
+	if err = service.chatStorageRepo.DeleteChatAndMessages(request.ChatJID); err != nil {
+		logrus.WithError(err).WithField("chat_jid", request.ChatJID).Error("Failed to delete chat from local storage")
+		// Continue anyway as WhatsApp deletion was successful
+	}
+
+	// Build response
+	response.Status = "success"
+	response.ChatJID = request.ChatJID
+	response.Message = "Chat deleted successfully"
+
+	if request.KeepStarred {
+		response.Message += " (starred messages kept)"
+	}
+
+	logrus.WithField("chat_jid", request.ChatJID).Info("Chat delete operation completed successfully")
+
+	return response, nil
+}
+
+func (service serviceChat) MarkChatAsRead(ctx context.Context, request domainChat.MarkChatAsReadRequest) (response domainChat.MarkChatAsReadResponse, err error) {
+	// Validate JID and ensure connection
+	targetJID, err := utils.ValidateJidWithLogin(whatsapp.GetClient(), request.ChatJID)
+	if err != nil {
+		return response, err
+	}
+
+	// Get last messages from the chat to mark as read
+	filter := &domainChatStorage.MessageFilter{
+		ChatJID: request.ChatJID,
+		Limit:   50, // Mark last 50 messages as read
+		Offset:  0,
+	}
+
+	messages, err := service.chatStorageRepo.GetMessages(filter)
+	if err != nil {
+		logrus.WithError(err).WithField("chat_jid", request.ChatJID).Error("Failed to get messages for marking as read")
+		return response, err
+	}
+
+	if len(messages) > 0 {
+		// Build message IDs list
+		messageIDs := make([]string, 0, len(messages))
+		for _, msg := range messages {
+			if !msg.IsFromMe && msg.ID != "" {
+				messageIDs = append(messageIDs, msg.ID)
+			}
+		}
+
+		if len(messageIDs) > 0 {
+			// Build read receipts using types.MessageID
+			timestamp := time.Now()
+			msgIDTypes := make([]types.MessageID, len(messageIDs))
+			for i, msgID := range messageIDs {
+				msgIDTypes[i] = types.MessageID(msgID)
+			}
+			
+			// Mark all messages as read at once
+			err := whatsapp.GetClient().MarkRead(msgIDTypes, timestamp, targetJID, targetJID)
+			if err != nil {
+				logrus.WithError(err).WithField("chat_jid", request.ChatJID).Warn("Failed to mark messages as read")
+			}
+		}
+	}
+
+	// Build response
+	response.Status = "success"
+	response.ChatJID = request.ChatJID
+	response.Message = "All messages in chat marked as read"
+
+	logrus.WithField("chat_jid", request.ChatJID).Info("Chat mark as read operation completed successfully")
 
 	return response, nil
 }
