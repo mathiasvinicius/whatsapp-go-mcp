@@ -92,13 +92,24 @@ On first run, you'll need to scan the QR code to authenticate with WhatsApp:
 4. Scan the QR code
 5. The session will be saved for future use
 
+## Persistent Storage
+
+The server uses SQLite databases stored in `/app/storages/`:
+- `whatsapp.db` - WhatsApp session data (authentication, contacts, groups)
+- `chatstorage.db` - Chat messages and history
+
+**IMPORTANT**: The Dockerfile declares `/app/storages` as a VOLUME for persistence.
+- On Smithery deployment, this volume persists across container restarts
+- Your WhatsApp session remains logged in even after server restarts
+- Contact names, chat history, and media are preserved
+
 ## Environment Variables
 
 The server uses these default values suitable for Smithery:
 - `PORT=8081` (Set by Smithery)
 - `MCP_HOST=0.0.0.0`
 - Auto-reconnect enabled
-- Session persistence enabled
+- Session persistence enabled via SQLite volumes
 
 ## Troubleshooting
 

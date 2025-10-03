@@ -42,8 +42,11 @@ COPY --from=builder /app/src/whatsapp .
 COPY src/statics ./statics
 COPY src/views ./views
 
-# Create necessary directories
-RUN mkdir -p .wwebjs_auth statics/media statics/qrcode statics/senditems
+# Create necessary directories including storages for persistent data
+RUN mkdir -p .wwebjs_auth statics/media statics/qrcode statics/senditems storages
+
+# Create volume for persistent WhatsApp session and chat data
+VOLUME ["/app/storages"]
 
 # Set environment variables
 ENV PORT=8081 \
