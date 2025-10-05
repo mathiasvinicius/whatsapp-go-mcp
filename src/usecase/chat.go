@@ -36,7 +36,7 @@ func (service serviceChat) ListChats(ctx context.Context, request domainChat.Lis
 
 	// FIRST: Get stored chats from the chat storage database
 	// This contains all chats that have been synced, including individual conversations
-	storedChats, err := service.chatStorageRepo.GetChats(nil)
+	storedChats, err := service.chatStorageRepo.GetChats(&domainChatStorage.ChatFilter{})
 	if err != nil {
 		logrus.WithError(err).Error("Failed to get stored chats from database")
 		storedChats = []*domainChatStorage.Chat{}
