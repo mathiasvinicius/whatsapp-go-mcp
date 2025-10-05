@@ -50,10 +50,10 @@ func (service serviceChat) ListChats(ctx context.Context, request domainChat.Lis
 		chatInfo := domainChat.ChatInfo{
 			JID:             chat.JID,
 			Name:            chat.Name,
-			LastMessageTime: chat.LastMessageTime,
+			LastMessageTime: chat.LastMessageTime.Format(time.RFC3339),
 			IsGroup:         strings.Contains(chat.JID, "@g.us"),
-			CreatedAt:       chat.CreatedAt,
-			UpdatedAt:       chat.UpdatedAt,
+			CreatedAt:       chat.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:       chat.UpdatedAt.Format(time.RFC3339),
 		}
 
 		// Apply search filter
