@@ -33,72 +33,116 @@ func (service serviceChat) ListChats(ctx context.Context, request domainChat.Lis
 
 	// Ensure we're logged in
 	utils.MustLogin(whatsapp.GetClient())
-	
-	// Get all chats directly from WhatsApp
-	// First, get groups
-	groups, err := whatsapp.GetClient().GetJoinedGroups()
+
+	// FIRST: Get stored chats from the chat storage database
+	// This contains all chats that have been synced, including individual conversations
+	storedChats, err := service.chatStorageRepo.GetChats(nil)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to get groups from WhatsApp")
-		// Continue with partial data
-		groups = []*types.GroupInfo{}
+		logrus.WithError(err).Error("Failed to get stored chats from database")
+		storedChats = []*domainChatStorage.Chat{}
 	}
 
-	// Get contacts
-	contacts, err := whatsapp.GetClient().Store.Contacts.GetAllContacts(ctx)
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get contacts from WhatsApp")
-		// Continue with partial data
-		contacts = map[types.JID]types.ContactInfo{}
-	}
-	
-	// Convert to chat infos
-	chatInfos := make([]domainChat.ChatInfo, 0)
-	
-	// Add groups as chats
-	for _, group := range groups {
+	// Convert to chat infos and use a map to deduplicate by JID
+	chatMap := make(map[string]domainChat.ChatInfo)
+
+	// Add stored chats from database FIRST (these have actual message history)
+	for _, chat := range storedChats {
 		chatInfo := domainChat.ChatInfo{
-			JID:                 group.JID.String(),
-			Name:                group.GroupName.Name,
-			LastMessageTime:     time.Now().Format(time.RFC3339), // We don't have last message time from WhatsApp directly
-			IsGroup:             true,
-			CreatedAt:           time.Now().Format(time.RFC3339),
-			UpdatedAt:           time.Now().Format(time.RFC3339),
+			JID:             chat.JID,
+			Name:            chat.Name,
+			LastMessageTime: chat.LastMessageTime,
+			IsGroup:         strings.Contains(chat.JID, "@g.us"),
+			CreatedAt:       chat.CreatedAt,
+			UpdatedAt:       chat.UpdatedAt,
 		}
-		
+
 		// Apply search filter
 		if request.Search != "" && !strings.Contains(strings.ToLower(chatInfo.Name), strings.ToLower(request.Search)) {
 			continue
 		}
-		
-		chatInfos = append(chatInfos, chatInfo)
+
+		chatMap[chat.JID] = chatInfo
 	}
-	
-	// Add contacts as chats
+
+	// SECOND: Get groups from WhatsApp (in case some aren't synced yet)
+	groups, err := whatsapp.GetClient().GetJoinedGroups()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get groups from WhatsApp")
+		groups = []*types.GroupInfo{}
+	}
+
+	// Get contacts from WhatsApp
+	contacts, err := whatsapp.GetClient().Store.Contacts.GetAllContacts(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get contacts from WhatsApp")
+		contacts = map[types.JID]types.ContactInfo{}
+	}
+
+	// Add groups from WhatsApp (in case some aren't synced yet)
+	for _, group := range groups {
+		jidStr := group.JID.String()
+
+		// Skip if already in map from database
+		if _, exists := chatMap[jidStr]; exists {
+			continue
+		}
+
+		chatInfo := domainChat.ChatInfo{
+			JID:             jidStr,
+			Name:            group.GroupName.Name,
+			LastMessageTime: time.Now().Format(time.RFC3339),
+			IsGroup:         true,
+			CreatedAt:       time.Now().Format(time.RFC3339),
+			UpdatedAt:       time.Now().Format(time.RFC3339),
+		}
+
+		// Apply search filter
+		if request.Search != "" && !strings.Contains(strings.ToLower(chatInfo.Name), strings.ToLower(request.Search)) {
+			continue
+		}
+
+		chatMap[jidStr] = chatInfo
+	}
+
+	// Add contacts from WhatsApp (individual chats)
 	for jid, contact := range contacts {
 		// Skip if it's a group (already added)
 		if strings.Contains(jid.String(), "@g.us") {
 			continue
 		}
-		
-		chatInfo := domainChat.ChatInfo{
-			JID:                 jid.String(),
-			Name:                contact.FullName,
-			LastMessageTime:     time.Now().Format(time.RFC3339), // We don't have last message time from WhatsApp directly
-			IsGroup:             false,
-			CreatedAt:           time.Now().Format(time.RFC3339),
-			UpdatedAt:           time.Now().Format(time.RFC3339),
+
+		jidStr := jid.String()
+
+		// Skip if already in map from database
+		if _, exists := chatMap[jidStr]; exists {
+			continue
 		}
-		
+
+		chatInfo := domainChat.ChatInfo{
+			JID:             jidStr,
+			Name:            contact.FullName,
+			LastMessageTime: time.Now().Format(time.RFC3339),
+			IsGroup:         false,
+			CreatedAt:       time.Now().Format(time.RFC3339),
+			UpdatedAt:       time.Now().Format(time.RFC3339),
+		}
+
 		// If no full name, use the phone number
 		if chatInfo.Name == "" {
 			chatInfo.Name = jid.User
 		}
-		
+
 		// Apply search filter
 		if request.Search != "" && !strings.Contains(strings.ToLower(chatInfo.Name), strings.ToLower(request.Search)) {
 			continue
 		}
-		
+
+		chatMap[jidStr] = chatInfo
+	}
+
+	// Convert map to slice
+	chatInfos := make([]domainChat.ChatInfo, 0, len(chatMap))
+	for _, chatInfo := range chatMap {
 		chatInfos = append(chatInfos, chatInfo)
 	}
 	
