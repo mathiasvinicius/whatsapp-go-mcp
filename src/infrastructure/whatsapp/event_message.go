@@ -9,6 +9,7 @@ import (
 
 	"go.mau.fi/whatsmeow/types"
 
+	domainChatStorage "github.com/aldinokemal/go-whatsapp-web-multidevice/domains/chatstorage"
 	"github.com/aldinokemal/go-whatsapp-web-multidevice/config"
 	pkgError "github.com/aldinokemal/go-whatsapp-web-multidevice/pkg/error"
 	"github.com/aldinokemal/go-whatsapp-web-multidevice/pkg/utils"
@@ -16,8 +17,22 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 )
 
+var chatStorageRepo domainChatStorage.IChatStorageRepository
+
+// SetChatStorageRepository sets the chat storage repository for this package.
+func SetChatStorageRepository(repo domainChatStorage.IChatStorageRepository) {
+	chatStorageRepo = repo
+}
+
+
 // forwardMessageToWebhook is a helper function to forward message event to webhook url
 func forwardMessageToWebhook(ctx context.Context, evt *events.Message) error {
+	// Store the incoming message
+	if err := StoreMessage(ctx, evt); err != nil {
+		logrus.WithError(err).Error("Failed to store incoming message before forwarding to webhook")
+		// Continue processing even if storage fails, as webhook forwarding is primary
+	}
+
 	logrus.Infof("Forwarding message event to %d configured webhook(s)", len(config.WhatsappWebhook))
 	payload, err := createMessagePayload(ctx, evt)
 	if err != nil {
@@ -204,3 +219,77 @@ func createMessagePayload(ctx context.Context, evt *events.Message) (map[string]
 
 	return body, nil
 }
+
+
+// StoreMessage stores an incoming message into the chat storage repository.
+func StoreMessage(ctx context.Context, evt *events.Message) error {
+	if evt.Message == nil {
+		return fmt.Errorf("message event contains no message")
+	}
+
+	// Extract relevant message information
+	messageID := evt.Info.ID
+	chatJID := evt.Info.Chat.String()
+	senderJID := evt.Info.Sender.String()
+	content := evt.Message.GetConversation()
+	timestamp := evt.Info.Timestamp
+	isFromMe := evt.Info.IsFromMe
+	mediaType := "text"
+	filename := ""
+	url := ""
+	fileLength := uint64(0)
+
+	// Handle different media types
+	if image := evt.Message.GetImageMessage(); image != nil {
+		mediaType = "image"
+		filename = image.GetCaption()
+		url = image.GetURL()
+		fileLength = image.GetFileLength()
+	} else if video := evt.Message.GetVideoMessage(); video != nil {
+		mediaType = "video"
+		filename = video.GetCaption()
+		url = video.GetURL()
+		fileLength = video.GetFileLength()
+	} else if audio := evt.Message.GetAudioMessage(); audio != nil {
+		mediaType = "audio"
+		url = audio.GetURL()
+		fileLength = audio.GetFileLength()
+	} else if document := evt.Message.GetDocumentMessage(); document != nil {
+		mediaType = "document"
+		filename = document.GetFileName()
+		url = document.GetURL()
+		fileLength = document.GetFileLength()
+	}
+
+	// Create a new message object for storage
+	msg := &domainChatStorage.Message{
+		ID:        messageID,
+		ChatJID:   chatJID,
+		Sender:    senderJID,
+		Content:   content,
+		Timestamp: timestamp,
+		IsFromMe:  isFromMe,
+		MediaType: mediaType,
+		Filename:  filename,
+		URL:       url,
+		FileLength: fileLength,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// Store the message using the chat storage repository
+	err := chatStorageRepo.StoreMessage(msg)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to store incoming message")
+		return err
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"message_id": messageID,
+		"chat_jid":   chatJID,
+		"sender":     senderJID,
+	}).Info("Incoming message stored successfully")
+
+	return nil
+}
+

@@ -256,7 +256,8 @@ func initApp() {
 		keysDB = whatsapp.InitWaDB(ctx, config.DBKeysURI)
 	}
 
-	whatsapp.InitWaCLI(ctx, whatsappDB, keysDB, chatStorageRepo)
+	whatsapp.SetChatStorageRepository(chatStorageRepo)
+		whatsapp.InitWaCLI(ctx, whatsappDB, keysDB, chatStorageRepo)
 
 	// Usecase
 	appUsecase = usecase.NewAppService(chatStorageRepo)
